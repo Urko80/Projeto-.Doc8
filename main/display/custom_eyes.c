@@ -387,6 +387,17 @@ void CustomEyes_BlinkNow(void)
     doc_face_blink_now();
 }
 
+/* DOC — Olhar fixo e boca falando, sem trocar a expressão atual. */
+void CustomEyes_SetGaze(bool enabled, float x, float y)
+{
+    doc_face_set_gaze_bias(enabled, x, y);
+}
+
+void CustomEyes_SetTalking(bool talking)
+{
+    doc_face_set_talking(talking);
+}
+
 /*
  * DOC — Encerra o timer e remove os objetos criados pelo módulo.
  * Chame antes de destruir o parent que contém o rosto.
