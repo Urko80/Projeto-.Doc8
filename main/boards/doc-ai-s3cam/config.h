@@ -25,11 +25,13 @@
 // DOC FIM
 
 // DOC INÍCIO — barra de LED 8x WS2812 (fio DIN).
-// ATENÇÃO: GPIO18 também é a linha D5 da câmera (CAMERA_PIN_D5). Com o pino
-// compartilhado, a barra apaga e solta o pino enquanto a câmera está aberta, e
-// volta quando ela fecha. Para ter LED e câmera ao mesmo tempo, ligue o DIN em
-// um pino livre (ex.: GPIO45) e troque só a linha DOC_LED_BAR_GPIO abaixo.
-#define DOC_LED_BAR_GPIO        GPIO_NUM_18
+// O DIN fica no GPIO45, que nenhum outro item do DOC usa. NÃO use o GPIO18: ele é
+// a linha D5 da câmera (CAMERA_PIN_D5) e, com a câmera aberta, o sensor escreve
+// nesse fio e a barra acende branca sem controle.
+// GPIO45 é um pino de "strapping" (lido só no instante em que a placa liga); com
+// o resistor de 330 Ω em série costuma funcionar normalmente. Se a placa deixar de
+// ligar com o fio conectado, tire o fio na hora de ligar, ou use o GPIO46.
+#define DOC_LED_BAR_GPIO        GPIO_NUM_45
 #define DOC_LED_BAR_COUNT       8
 // Brilho geral 0..255 (48 = cerca de 19 %). Aumente com cuidado: 8 LEDs brancos
 // no máximo puxam cerca de 480 mA dos 5 V.
