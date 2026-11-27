@@ -51,6 +51,13 @@ void CustomEyes_SetCameraMode(bool enabled);
 // DOC — Solicita uma piscada imediata.
 void CustomEyes_BlinkNow(void);
 
+// DOC — Olhar fixo (unidades virtuais, -4..4) enquanto enabled=true; com
+// enabled=false o olhar volta a passear sozinho. Não muda a expressão.
+void CustomEyes_SetGaze(bool enabled, float x, float y);
+
+// DOC — Boca abrindo e fechando enquanto o assistente fala. Não muda a expressão.
+void CustomEyes_SetTalking(bool talking);
+
 // DOC — Encerra o temporizador e libera os objetos do módulo.
 void CustomEyes_Deinit(void);
 

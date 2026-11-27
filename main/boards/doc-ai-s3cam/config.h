@@ -24,6 +24,20 @@
 #define TOUCH_BUTTON_GPIO       GPIO_NUM_48
 // DOC FIM
 
+// DOC INÍCIO — barra de LED 8x WS2812 (fio DIN).
+// O DIN fica no GPIO45, que nenhum outro item do DOC usa. NÃO use o GPIO18: ele é
+// a linha D5 da câmera (CAMERA_PIN_D5) e, com a câmera aberta, o sensor escreve
+// nesse fio e a barra acende branca sem controle.
+// GPIO45 é um pino de "strapping" (lido só no instante em que a placa liga); com
+// o resistor de 330 Ω em série costuma funcionar normalmente. Se a placa deixar de
+// ligar com o fio conectado, tire o fio na hora de ligar, ou use o GPIO46.
+#define DOC_LED_BAR_GPIO        GPIO_NUM_45
+#define DOC_LED_BAR_COUNT       8
+// Brilho geral 0..255 (48 = cerca de 19 %). Aumente com cuidado: 8 LEDs brancos
+// no máximo puxam cerca de 480 mA dos 5 V.
+#define DOC_LED_BAR_LEVEL       48
+// DOC FIM
+
 // DOC INÍCIO — sensor de distância VL53L0X no barramento I2C compartilhado
 // com o PCA9685 (SDA GPIO19 / SCL GPIO20, 100 kHz, endereço 0x29).
 #define DOC_I2C_SDA_GPIO        GPIO_NUM_19

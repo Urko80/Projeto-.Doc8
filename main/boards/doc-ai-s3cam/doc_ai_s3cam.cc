@@ -5,6 +5,8 @@
 #include "config.h"
 #include "display/lcd_display.h"
 #include "display/custom_eyes.h"
+#include "doc_led_bar.h"
+#include "doc_reactions.h"
 #include "web_servo_api.h"
 #include "doc_motion.h"
 #include "mcp_server.h"
@@ -27,6 +29,28 @@
 
 #define TAG "doc-ai-s3cam"
 
+// DOC INÍCIO — display que avisa as reações (LED + olhos) quando chega uma emoção.
+class DocDisplay : public SpiLcdDisplay {
+public:
+    DocDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_handle_t panel,
+               int width, int height, int offset_x, int offset_y,
+               bool mirror_x, bool mirror_y, bool swap_xy, DocReactions* reactions)
+        : SpiLcdDisplay(panel_io, panel, width, height, offset_x, offset_y,
+                        mirror_x, mirror_y, swap_xy),
+          reactions_(reactions) {}
+
+    void SetEmotion(const char* emotion) override {
+        SpiLcdDisplay::SetEmotion(emotion);
+        if (reactions_ != nullptr) {
+            reactions_->OnEmotion(emotion);
+        }
+    }
+
+private:
+    DocReactions* reactions_;
+};
+// DOC FIM
+
 class DocAiS3Cam : public WifiBoard {
 private:
     Button boot_button_;
@@ -36,6 +60,12 @@ private:
     vl53l0x_driver_t* distance_sensor_ = nullptr;
     // DOC FIM
     Display* display_ = nullptr;
+    // DOC INÍCIO — barra de LED e reações (estado/emoção -> LED + olhos).
+    DocLedBar led_bar_{DOC_LED_BAR_GPIO, DOC_LED_BAR_COUNT, DOC_LED_BAR_LEVEL};
+    DocReactions reactions_{&led_bar_};
+    // Se o pino do LED é o mesmo da câmera, a barra é suspensa com a câmera aberta.
+    static constexpr bool kLedSharesCameraPin = (DOC_LED_BAR_GPIO == CAMERA_PIN_D5);
+    // DOC FIM
     bool servo_api_started_ = false;
 
     // DOC INÍCIO — Estado da câmera OV3660, aberta somente quando solicitada.
@@ -375,12 +405,12 @@ private:
                 panel, DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y));
         ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
 
-        display_ = new SpiLcdDisplay(
+        display_ = new DocDisplay(
             panel_io, panel,
             DISPLAY_WIDTH, DISPLAY_HEIGHT,
             DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y,
             DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y,
-            DISPLAY_SWAP_XY);
+            DISPLAY_SWAP_XY, &reactions_);
 
         ESP_LOGI(TAG, "ST7735 display initialized");
     }
@@ -457,11 +487,18 @@ public:
 
     Camera* OpenCamera() override {
         if (camera_ == nullptr) {
+            // DOC — a câmera usa o GPIO18: solta o pino da barra de LED antes.
+            if (kLedSharesCameraPin) {
+                led_bar_.Suspend();
+            }
             InitializeCamera();
             if (camera_ == nullptr || !camera_->Capture()) {
                 ESP_LOGE(TAG, "Failed to initialize or capture from OV3660");
                 delete camera_;
                 camera_ = nullptr;
+                if (kLedSharesCameraPin) {
+                    led_bar_.Resume();
+                }
                 return nullptr;
             }
         }
@@ -480,6 +517,10 @@ public:
         StopCameraPreviewTask();
         delete camera_;
         camera_ = nullptr;
+        // DOC — a câmera soltou o GPIO18: a barra de LED volta a funcionar.
+        if (kLedSharesCameraPin) {
+            led_bar_.Resume();
+        }
         if (display_ != nullptr) {
             display_->SetPreviewImage(nullptr);
             // DOC — Restaura a prévia e os olhos ao centro após fechar a câmera.
@@ -541,6 +582,11 @@ public:
 
     Display* GetDisplay() override {
         return display_;
+    }
+
+    // DOC — o firmware chama este Led a cada mudança de estado (ouvindo, falando...).
+    Led* GetLed() override {
+        return &reactions_;
     }
 };
 

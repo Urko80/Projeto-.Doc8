@@ -65,3 +65,40 @@ A pinagem ST7735 1,77" e OV3660 está registrada em `config.h`, mas inicializaç
 
 ## Compilação local
 No repositório local XiaoZhi/ESP-IDF, selecionar a placa `doc-ai-s3cam` e compilar conforme o fluxo de build do projeto. A compilação e o teste físico continuam pendentes.
+
+## Barra de LED e reações (estado/emoção)
+
+Barra de 8 LEDs WS2812, fio DIN no **GPIO45** (`DOC_LED_BAR_GPIO` em `config.h`).
+
+| Ligação | Observação |
+|---|---|
+| DIN | GPIO45, com resistor de 330 Ω em série; fios curtos |
+| 5 V | alimentação do conversor/bateria (não do 3V3 da placa) |
+| GND | **comum** com o da placa ESP32 |
+
+**Por que GPIO45 e não GPIO18:** o GPIO18 é a linha D5 da câmera. Com a câmera aberta, o sensor escreve nesse fio e a barra acende branca sem controle. O GPIO45 não é usado por mais nada e funciona com a câmera aberta. Ele é um pino de "strapping" (lido só ao ligar a placa); se a placa deixar de ligar com o fio conectado, tire o fio na hora de ligar, ou use o GPIO46. Se o DIN for ligado no GPIO18 mesmo assim, o código ainda suspende a barra durante a câmera (`kLedSharesCameraPin`), mas o fio continua sofrendo interferência do sensor.
+
+**Brilho:** `DOC_LED_BAR_LEVEL` (0..255, padrão 48 ≈ 19 %). Oito LEDs brancos no máximo puxam cerca de 480 mA.
+
+### O que cada estado faz
+
+| Estado | LED | Olhos |
+|---|---|---|
+| Iniciando | azul, cometa | — |
+| Configurando Wi-Fi | azul piscando | — |
+| Repouso | apagado | olhar livre |
+| Ouvindo (sem voz) | ciano respirando | olha para cima |
+| Ouvindo (com voz) | ciano fixo | olhar livre |
+| Pensando (emoção `thinking`) | roxo, cometa | olha de lado |
+| Falando | cor da emoção | boca abre e fecha |
+| Atualizando | verde piscando | — |
+
+### Cores por emoção (falando)
+`happy/laughing/funny/excited` verde · `angry` vermelho · `furious` vermelho piscando · `sad/crying` azul · `loving/kissy` rosa · `surprised/shocked` amarelo piscando · `confused/embarrassed` laranja · `cool` azul · `confident` roxo-azul · `relaxed/delicious` verde-água · `winking` rosa · `sleepy` laranja fraco · `silly/crazy/dizzy` arco-íris · `neutral` azul suave.
+
+Para mudar qualquer cor ou animação, edite a tabela no topo de `doc_led_effects.cc`.
+
+### Arquivos
+- `doc_led_effects.*`: tabelas e cálculo das cores (sem ESP-IDF, testável no PC).
+- `doc_led_bar.*`: driver da barra (temporizador de 25 quadros/s, suspender/retomar).
+- `doc_reactions.*`: liga estado e emoção ao LED e aos olhos (`Led::OnStateChanged` + `DocDisplay::SetEmotion`).
